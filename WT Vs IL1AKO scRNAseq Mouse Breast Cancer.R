@@ -280,7 +280,3 @@ for (gene in genes) {
   print(plot)
   dev.off()
 }
-
-#WT Vs IL1aKO cellchat
-
-
