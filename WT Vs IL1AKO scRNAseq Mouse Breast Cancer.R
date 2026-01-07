@@ -256,27 +256,41 @@ TGFb_genes <- cellchat@LR$WT$LRsig[cellchat@LR$WT$LRsig$pathway_name == "TGFb", 
 print(TGFb_genes)
 print(TGFb_genes$receptor.symbol)
 
-for (gene in genes) {
-  
-  # Generate violin plot for the current gene
-  plot <- VlnPlot(
-    a, features = gene, split.by = "orig.ident", split.plot = TRUE, 
-    flip = TRUE, combine = TRUE, cols = c("Blue", "Red")
-  ) + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1, size = 12))
-  
-  # Find max y-value and adjust significance star positioning dynamically
-  y_max <- max(FetchData(a, vars = gene), na.rm = TRUE) * 1.2  # Increase 20% buffer to avoid cropping
-  
-  # Add statistical significance with adjusted y.position
-  plot <- plot + stat_compare_means(
+# Pull expression for all genes to compute a global y max for consistent axis
+df_all <- FetchData(pan.integrated_merged, vars = TGFb_genes)
+y_max <- max(df_all, na.rm = TRUE) * 1.3
+
+# Base stacked violin plot
+p <- VlnPlot(
+  pan.integrated_merged,
+  features = TGFb_genes,
+  stack = TRUE,
+  flip = TRUE,
+  pt.size = 0,
+  split.by = "orig.ident",
+  split.plot = TRUE,cols = c("Blue", "Red")
+) +
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1, size = 11),
+    axis.text.y = element_text(size = 12),
+    plot.title = element_text(face = "bold", size = 14)
+  ) +
+  ggtitle("Stacked split violin plots (WT vs KO)") +
+  coord_cartesian(ylim = c(NA, y_max))
+
+# Add stats per stacked panel
+p <- p +
+  stat_compare_means(
     method = "t.test",
     label = "p.signif",
     hide.ns = TRUE,
-    size = 8
+    size = 6
   )
-  
-  # Save the plot as a PDF with a larger height to accommodate stars
-  pdf(paste0(gene, "_Ttestviolin_plot.pdf"), width = 11, height = 9)  
-  print(plot)
-  dev.off()
-}
+
+# Save one combined PDF
+out <- "StackedSplit_VlnPlot_all_genes.pdf"
+ggsave(out, plot = p, width = 11, height = 8, dpi = 300, device = cairo_pdf)
+
+message("Saved: ", out)
+
+
